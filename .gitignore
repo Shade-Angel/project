@@ -1,0 +1,11 @@
+# Зависимости
+node_modules/
+*.exe
+data.json
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+
+# Логи
+*.log

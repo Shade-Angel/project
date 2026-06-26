@@ -1,0 +1,37 @@
+{
+    "name": "plant_shuduler",
+    "version": "1.1.0",
+    "description": "Простая программа используящая алгоритмы и структуры данных изученных на парах АЛГОСА",
+    "main": "src/server.js",
+    "bin": "src/server.js",
+    "scripts": {
+        "start": "node src/server.js",
+        "dev": "node --watch src/server.js",
+        "test": "node tests/load-test.js",
+        "build:exe": "pkg . --targets node18-win-x64 --output plant-care.exe"
+    },
+    "pkg": {
+        "scripts": "src/**/*.js",
+        "assets": [
+            "public/**/*"
+        ]
+    },
+    "keywords": [
+        "algorithms",
+        "data-structures",
+        "plant-care",
+        "lab-8",
+        "javascript"
+    ],
+    "author": "Мухаметов Самат, студент выполнивший 8 лабу",
+    "license": "MIT",
+    "dependencies": {
+        "express": "^4.18.2"
+    },
+    "engines": {
+        "node": ">=14.0.0"
+    },
+    "devDependencies": {
+        "pkg": "^5.8.1"
+    }
+}

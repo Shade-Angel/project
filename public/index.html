@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дневник ухода</title>
+    <meta name="author" content="Мухаметов Самат">
+    <link rel="stylesheet" href="./file.css">
+</head>
+
+<body>
+    <h1>Планировщик ухода за растениями</h1>
+
+    <div class="card">
+        <h3>Добавить растение</h3>
+        <input id="id" placeholder="ID">
+        <input id="name" placeholder="Вид">
+        <input id="nextCareDate" type="date" placeholder="Дата следующего ухода">
+        <input id="complexity" type="number" min="1" max="5" placeholder="Сложность ухода (1-5)">
+        <input id="health" type="number" min="0" max="100" placeholder="Индекс здоровья (0-100)">
+        <button onclick="addPlant()">Добавить</button>
+        <div id="addMessage"></div>
+    </div>
+
+    <div class="card">
+        <h3>Задачи на сегодня</h3>
+        <button onclick="loadSchedule()">Обновить очередь</button>
+        <ul id="schedule" class="plant-list"></ul>
+    </div>
+
+    <div class="card">
+        <h3>Отчёт по срочности</h3>
+        <button onclick="loadReport()">Сформировать</button>
+        <ul id="report" class="plant-list"></ul>
+    </div>
+
+    <div class="card" style="margin-top: 20px; border-left: 5px solid #ff9800;">
+        <h3>Управление данными</h3>
+        <button onclick="exportData()" style="margin-right: 10px; background: #2196f3;">
+            Экспорт JSON
+        </button>
+        <button onclick="document.getElementById('importFile').click()" style="background: #4caf50;">
+            Импорт JSON
+        </button>
+        <input type="file" id="importFile" accept=".json" style="display: none;" 
+                onchange="importData(this)">
+        <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+            Данные автоматически сохраняются при добавлении растений и закрытии программы
+        </p>
+    </div>
+
+    <script>
+        const api = async (url, opts = {}) => {
+            const response = await fetch(url, {
+                headers: { "Content-Type": "application/json" },
+                ...opts
+            });
+            return await response.json();
+        };
+
+        async function addPlant() {
+            const id = document.getElementById('id').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const nextCareDate = document.getElementById('nextCareDate').value;
+            const complexity = parseInt(document.getElementById('complexity').value) || 3;
+            const health = parseInt(document.getElementById('health').value) || 80;
+            const msgDiv = document.getElementById('addMessage');
+
+            if (!id || !name) {
+                msgDiv.innerHTML = '<div class="error">ID и название обязательны</div>';
+                return;
+            }
+
+            try {
+                const body = {
+                    id: id,
+                    name: name,
+                    nextCareDate: nextCareDate || new Date().toISOString().split('T')[0],
+                    complexity: complexity,
+                    healthIndex: health
+                };
+
+                await api("/api/plants", {
+                    method: "POST",
+                    body: JSON.stringify(body)
+                });
+
+
+                msgDiv.innerHTML = '<div class="success">Растение "' + name + '" успешно добавлено!</div>';
+
+
+                document.getElementById('id').value = '';
+                document.getElementById('name').value = '';
+                document.getElementById('nextCareDate').value = '';
+                document.getElementById('complexity').value = '';
+                document.getElementById('health').value = '';
+
+
+                loadSchedule();
+
+            } catch (e) {
+                msgDiv.innerHTML = '<div class="error">Ошибка: ' + e.message + '</div>';
+            }
+        }
+
+        async function loadSchedule() {
+
+            try {
+                const plants = await api("/api/schedule");
+                const list = document.getElementById('schedule');
+
+                if (!plants || plants.length === 0) {
+                    list.innerHTML = '<li>Нет срочных задач на сегодня</li>';
+                    return;
+                }
+
+                list.innerHTML = plants.map((p, i) => {
+                    const isUrgent = p.healthIndex < 50;
+                    return `<li class="${isUrgent ? 'urgent' : ''}">
+            <strong>${i + 1}. ${p.name || p.id}</strong><br>
+            ID: ${p.id}<br>
+            Дата ухода: ${p.nextCareDate}<br>
+            Сложность: ${p.complexity}/5 | Здоровье: ${p.healthIndex}%
+          </li>`;
+                }).join("");
+
+            } catch (e) {
+                document.getElementById('schedule').innerHTML =
+                    '<li class="error">Ошибка загрузки: ' + e.message + '</li>';
+            }
+        }
+
+        async function loadReport() {
+            try {
+                const plants = await api("/api/report");
+                const list = document.getElementById('report');
+
+                if (!plants || plants.length === 0) {
+                    list.innerHTML = '<li>Нет данных для отчёта</li>';
+                    return;
+                }
+
+                const now = Date.now();
+                list.innerHTML = plants.map((p, i) => {
+                    const careDate = new Date(p.nextCareDate).getTime();
+                    const daysLate = Math.max(0, Math.round((now - careDate) / 86400000));
+                    const name = p.name || p.id || 'Без названия';
+
+                    return `<li>
+            <strong>${i + 1}. ${name}</strong> (ID: ${p.id})<br>
+            Срочность: ${daysLate} дн. | 
+            Сложность: ${p.complexity} | 
+            Здоровье: ${p.healthIndex}%
+          </li>`;
+                }).join("");
+
+            } catch (e) {
+                document.getElementById('report').innerHTML =
+                    '<li class="error">Ошибка формирования отчёта: ' + e.message + '</li>';
+            }
+        }
+
+        window.onload = () => {
+            loadSchedule();
+        };
+    </script>
+    <script>
+    async function exportData() {
+    try {
+        const res = await fetch('/api/export');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `plant-data-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        alert('Данные экспортированы!');
+    } catch (err) {
+        alert('Ошибка экспорта: ' + err.message);
+    }
+    }
+
+    async function importData(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    if (!confirm('Текущие данные будут заменены. Продолжить?')) {
+        input.value = '';
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+        const data = JSON.parse(e.target.result);
+        const res = await fetch('/api/import', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        if (res.ok) {
+            alert('Данные импортированы! Страница будет перезагружена...');
+            location.reload();
+        } else {
+            const err = await res.json();
+            alert('Ошибка импорта: ' + err.error);
+        }
+        } catch (err) {
+        alert('Ошибка чтения файла: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+    input.value = '';
+    }
+    </script>
+</body>
+
+</html>
