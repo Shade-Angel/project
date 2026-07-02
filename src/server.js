@@ -106,17 +106,21 @@ if (process.argv.includes("--test")) {
 			process.exit(1);
 		});
 } else if (process.argv.includes("--demo")) {
-	const PORT = 3000;
-	app.listen(PORT, async () => {
-		console.log(`Сервер запущен для демо на http://localhost:${PORT}`);
+	const PORT = process.env.PORT || 0;
+	const server = app.listen(PORT, async () => {
+		const actualPort = server.address().port;
+		console.log(`Сервер запущен для демо на порту ${actualPort}`);
 		try {
 			const { runDemo } = require("../demo");
-			await runDemo();
+			await runDemo(actualPort);
 			console.log("Демо завершено успешно.");
 		} catch (err) {
 			console.error("Ошибка в демо:", err);
 		} finally {
-			process.exit(0);
+			saveToFile(manager, dataFile);
+			server.close(() => {
+				process.exit(0);
+			});
 		}
 	});
 } else {

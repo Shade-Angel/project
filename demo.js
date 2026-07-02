@@ -1,10 +1,11 @@
-const API = "http://localhost:3000/api";
+const API_BASE = "http://localhost";
 
 async function sleep(ms) {
 	return new Promise((res) => setTimeout(res, ms));
 }
 
-async function runDemo() {
+async function runDemo(port) {
+	const API = `${API_BASE}:${port}/api`;
 	console.log("Тестирование графов и BFS...\n");
 
 	try {
