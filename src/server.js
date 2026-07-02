@@ -106,21 +106,19 @@ if (process.argv.includes("--test")) {
 			process.exit(1);
 		});
 } else if (process.argv.includes("--demo")) {
-	console.log(" ");
-	console.log("Запуск демо...");
-
-	try {
-		require("../demo");
-		console.log(" ");
-		console.log("Демо завершено!");
-		console.log(" ");
-		process.exit(0);
-	} catch (err) {
-		console.log(" ");
-		console.error("Ошибка в демо:", err);
-		console.log(" ");
-		process.exit(1);
-	}
+	const PORT = 3000;
+	app.listen(PORT, async () => {
+		console.log(`Сервер запущен для демо на http://localhost:${PORT}`);
+		try {
+			const { runDemo } = require("../demo");
+			await runDemo();
+			console.log("Демо завершено успешно.");
+		} catch (err) {
+			console.error("Ошибка в демо:", err);
+		} finally {
+			process.exit(0);
+		}
+	});
 } else {
 	const PORT = 3000;
 	app.listen(PORT, () => {
@@ -130,7 +128,7 @@ if (process.argv.includes("--test")) {
 
 		setTimeout(() => {
 			const openCmd =
-                process.platform === "win32" ? "start" : process.platform === "darwin" ? "open" : "xdg-open";
+				process.platform === "win32" ? "start" : process.platform === "darwin" ? "open" : "xdg-open";
 			exec(`${openCmd} http://localhost:${PORT}`);
 		}, 1000);
 	});
