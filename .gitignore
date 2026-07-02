@@ -1,11 +1,9 @@
-# Зависимости
 node_modules/
 *.exe
 data.json
+/images
 
-# Системные файлы
 .DS_Store
 Thumbs.db
 
-# Логи
 *.log
