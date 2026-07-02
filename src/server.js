@@ -21,9 +21,9 @@ const dataFile = process.pkg ? path.join(process.cwd(), "data.json") : path.join
 loadFromFile(manager, file);
 
 const saveOnExit = () => {
-    saveToFile(manager, dataFile);
-    console.log("Данные сохранены");
-    process.exit(0);
+	saveToFile(manager, dataFile);
+	console.log("Данные сохранены");
+	process.exit(0);
 };
 
 process.on("SIGINT", saveOnExit);
@@ -31,107 +31,107 @@ process.on("SIGTERM", saveOnExit);
 process.on("SIGQUIT", saveOnExit);
 
 process.on("uncaughtException", (err) => {
-    console.error("Ошибка:", err.message);
-    saveToFile(manager, dataFile);
-    process.exit(1);
+	console.error("Ошибка:", err.message);
+	saveToFile(manager, dataFile);
+	process.exit(1);
 });
 
 app.post("/api/plants", (req, res) => {
-    try {
-        manager.addPlant(req.body);
-        res.json({ ok: true });
-    } catch (e) {
-        res.status(400).json({ error: e.message });
-    }
+	try {
+		manager.addPlant(req.body);
+		res.json({ ok: true });
+	} catch (e) {
+		res.status(400).json({ error: e.message });
+	}
 });
 
 app.post("/api/relations", (req, res) => {
-    try {
-        manager.addRelation(req.body.id1, req.body.id2, req.body.type, req.body.weight);
-        res.json({ ok: true });
-    } catch (e) {
-        res.status(400).json({ error: e.message });
-    }
+	try {
+		manager.addRelation(req.body.id1, req.body.id2, req.body.type, req.body.weight);
+		res.json({ ok: true });
+	} catch (e) {
+		res.status(400).json({ error: e.message });
+	}
 });
 
 app.get("/api/schedule", (req, res) => res.json(manager.getDailyTasks()));
 app.get("/api/report", (req, res) => res.json(manager.generateReport()));
 app.get("/api/route", (req, res) => {
-    const { from, to } = req.query;
-    res.json(manager.findCareRoute(from, to));
+	const { from, to } = req.query;
+	res.json(manager.findCareRoute(from, to));
 });
 
 app.get("/api/export", (req, res) => {
-    if (fs.existsSync(dataFile)) {
-        res.download(dataFile, "plant-data.json");
-    } else {
-        res.status(404).json({ error: "Файл данных не найден" });
-    }
+	if (fs.existsSync(dataFile)) {
+		res.download(dataFile, "plant-data.json");
+	} else {
+		res.status(404).json({ error: "Файл данных не найден" });
+	}
 });
 
 app.post("/api/import", (req, res) => {
-    try {
-        const newData = req.body;
-        const tempFile = dataFile + ".temp";
-        fs.writeFileSync(tempFile, JSON.stringify(newData, null, 2));
+	try {
+		const newData = req.body;
+		const tempFile = dataFile + ".temp";
+		fs.writeFileSync(tempFile, JSON.stringify(newData, null, 2));
 
-        fs.renameSync(tempFile, dataFile);
-        loadFromFile(manager, dataFile);
+		fs.renameSync(tempFile, dataFile);
+		loadFromFile(manager, dataFile);
 
-        res.json({ ok: true, message: "Данные импортированы" });
-    } catch (e) {
-        res.status(400).json({ error: e.message });
-    }
+		res.json({ ok: true, message: "Данные импортированы" });
+	} catch (e) {
+		res.status(400).json({ error: e.message });
+	}
 });
 
 app.get("*", (req, res) => {
-    res.sendFile(path.join(publicPath, "index.html"));
+	res.sendFile(path.join(publicPath, "index.html"));
 });
 
 if (process.argv.includes("--test")) {
-    const { runPerformanceTests } = require("../test/test");
-    console.log("");
-    console.log("");
-    runPerformanceTests()
-        .then(() => {
-            console.log("");
-            console.log("Тестирование завершено!");
-            console.log("");
-            process.exit(0);
-        })
-        .catch((err) => {
-            console.log("");
-            console.error("Ошибка тестирования:", err);
-            console.log("");
-            process.exit(1);
-        });
+	const { runPerformanceTests } = require("../test/test");
+	console.log("");
+	console.log("");
+	runPerformanceTests()
+		.then(() => {
+			console.log("");
+			console.log("Тестирование завершено!");
+			console.log("");
+			process.exit(0);
+		})
+		.catch((err) => {
+			console.log("");
+			console.error("Ошибка тестирования:", err);
+			console.log("");
+			process.exit(1);
+		});
 } else if (process.argv.includes("--demo")) {
-    console.log(" ");
-    console.log("Запуск демо...");
+	console.log(" ");
+	console.log("Запуск демо...");
 
-    try {
-        require("../demo");
-        console.log(" ");
-        console.log("Демо завершено!");
-        console.log(" ");
-        process.exit(0);
-    } catch (err) {
-        console.log(" ");
-        console.error("Ошибка в демо:", err);
-        console.log(" ");
-        process.exit(1);
-    }
+	try {
+		require("../demo");
+		console.log(" ");
+		console.log("Демо завершено!");
+		console.log(" ");
+		process.exit(0);
+	} catch (err) {
+		console.log(" ");
+		console.error("Ошибка в демо:", err);
+		console.log(" ");
+		process.exit(1);
+	}
 } else {
-    const PORT = 3000;
-    app.listen(PORT, () => {
-        console.log("");
-        console.log(`Web запущен: http://localhost:${PORT}`);
-        console.log(`Данные: ${dataFile}`);
+	const PORT = 3000;
+	app.listen(PORT, () => {
+		console.log("");
+		console.log(`Web запущен: http://localhost:${PORT}`);
+		console.log(`Данные: ${dataFile}`);
 
-        setTimeout(() => {
-            const openCmd =
+		setTimeout(() => {
+			const openCmd =
                 process.platform === "win32" ? "start" : process.platform === "darwin" ? "open" : "xdg-open";
-            exec(`${openCmd} http://localhost:${PORT}`);
-        }, 1000);
-    });
+			exec(`${openCmd} http://localhost:${PORT}`);
+		}, 1000);
+	});
 }

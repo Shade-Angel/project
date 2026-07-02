@@ -1,109 +1,109 @@
 const api = async (url, opts = {}) => {
-    const response = await fetch(url, {
-        headers: { "Content-Type": "application/json" },
-        ...opts,
-    });
-    return await response.json();
+	const response = await fetch(url, {
+		headers: { "Content-Type": "application/json" },
+		...opts,
+	});
+	return await response.json();
 };
 
 async function addPlant() {
-    const id = document.getElementById("id").value.trim();
-    const name = document.getElementById("name").value.trim();
-    const nextCareDate = document.getElementById("nextCareDate").value;
-    const complexity = parseInt(document.getElementById("complexity").value) || 3;
-    const health = parseInt(document.getElementById("health").value) || 80;
-    const msgDiv = document.getElementById("addMessage");
+	const id = document.getElementById("id").value.trim();
+	const name = document.getElementById("name").value.trim();
+	const nextCareDate = document.getElementById("nextCareDate").value;
+	const complexity = parseInt(document.getElementById("complexity").value) || 3;
+	const health = parseInt(document.getElementById("health").value) || 80;
+	const msgDiv = document.getElementById("addMessage");
 
-    if (!id || !name) {
-        msgDiv.innerHTML = '<div class="error">ID и название обязательны</div>';
-        return;
-    }
+	if (!id || !name) {
+		msgDiv.innerHTML = '<div class="error">ID и название обязательны</div>';
+		return;
+	}
 
-    try {
-        const body = {
-            id: id,
-            name: name,
-            nextCareDate: nextCareDate || new Date().toISOString().split("T")[0],
-            complexity: complexity,
-            healthIndex: health,
-        };
+	try {
+		const body = {
+			id: id,
+			name: name,
+			nextCareDate: nextCareDate || new Date().toISOString().split("T")[0],
+			complexity: complexity,
+			healthIndex: health,
+		};
 
-        await api("/api/plants", {
-            method: "POST",
-            body: JSON.stringify(body),
-        });
+		await api("/api/plants", {
+			method: "POST",
+			body: JSON.stringify(body),
+		});
 
-        msgDiv.innerHTML = '<div class="success">Растение "' + name + '" успешно добавлено!</div>';
+		msgDiv.innerHTML = '<div class="success">Растение "' + name + '" успешно добавлено!</div>';
 
-        document.getElementById("id").value = "";
-        document.getElementById("name").value = "";
-        document.getElementById("nextCareDate").value = "";
-        document.getElementById("complexity").value = "";
-        document.getElementById("health").value = "";
+		document.getElementById("id").value = "";
+		document.getElementById("name").value = "";
+		document.getElementById("nextCareDate").value = "";
+		document.getElementById("complexity").value = "";
+		document.getElementById("health").value = "";
 
-        loadSchedule();
-    } catch (e) {
-        msgDiv.innerHTML = '<div class="error">Ошибка: ' + e.message + "</div>";
-    }
+		loadSchedule();
+	} catch (e) {
+		msgDiv.innerHTML = '<div class="error">Ошибка: ' + e.message + "</div>";
+	}
 }
 
 async function loadSchedule() {
-    try {
-        const plants = await api("/api/schedule");
-        const list = document.getElementById("schedule");
+	try {
+		const plants = await api("/api/schedule");
+		const list = document.getElementById("schedule");
 
-        if (!plants || plants.length === 0) {
-            list.innerHTML = "<li>Нет срочных задач на сегодня</li>";
-            return;
-        }
+		if (!plants || plants.length === 0) {
+			list.innerHTML = "<li>Нет срочных задач на сегодня</li>";
+			return;
+		}
 
-        list.innerHTML = plants
-            .map((p, i) => {
-                const isUrgent = p.healthIndex < 50;
-                return `<li class="${isUrgent ? "urgent" : ""}">
+		list.innerHTML = plants
+			.map((p, i) => {
+				const isUrgent = p.healthIndex < 50;
+				return `<li class="${isUrgent ? "urgent" : ""}">
             <strong>${i + 1}. ${p.name || p.id}</strong><br>
             ID: ${p.id}<br>
             Дата ухода: ${p.nextCareDate}<br>
             Сложность: ${p.complexity}/5 | Здоровье: ${p.healthIndex}%
           </li>`;
-            })
-            .join("");
-    } catch (e) {
-        document.getElementById("schedule").innerHTML = '<li class="error">Ошибка загрузки: ' + e.message + "</li>";
-    }
+			})
+			.join("");
+	} catch (e) {
+		document.getElementById("schedule").innerHTML = '<li class="error">Ошибка загрузки: ' + e.message + "</li>";
+	}
 }
 
 async function loadReport() {
-    try {
-        const plants = await api("/api/report");
-        const list = document.getElementById("report");
+	try {
+		const plants = await api("/api/report");
+		const list = document.getElementById("report");
 
-        if (!plants || plants.length === 0) {
-            list.innerHTML = "<li>Нет данных для отчёта</li>";
-            return;
-        }
+		if (!plants || plants.length === 0) {
+			list.innerHTML = "<li>Нет данных для отчёта</li>";
+			return;
+		}
 
-        const now = Date.now();
-        list.innerHTML = plants
-            .map((p, i) => {
-                const careDate = new Date(p.nextCareDate).getTime();
-                const daysLate = Math.max(0, Math.round((now - careDate) / 86400000));
-                const name = p.name || p.id || "Без названия";
+		const now = Date.now();
+		list.innerHTML = plants
+			.map((p, i) => {
+				const careDate = new Date(p.nextCareDate).getTime();
+				const daysLate = Math.max(0, Math.round((now - careDate) / 86400000));
+				const name = p.name || p.id || "Без названия";
 
-                return `<li>
+				return `<li>
             <strong>${i + 1}. ${name}</strong> (ID: ${p.id})<br>
             Срочность: ${daysLate} дн. | 
             Сложность: ${p.complexity} | 
             Здоровье: ${p.healthIndex}%
           </li>`;
-            })
-            .join("");
-    } catch (e) {
-        document.getElementById("report").innerHTML =
+			})
+			.join("");
+	} catch (e) {
+		document.getElementById("report").innerHTML =
             '<li class="error">Ошибка формирования отчёта: ' + e.message + "</li>";
-    }
+	}
 }
 
 window.onload = () => {
-    loadSchedule();
+	loadSchedule();
 };
