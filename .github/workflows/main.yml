@@ -9,6 +9,9 @@ on:
 jobs:
     lint-and-test:
         runs-on: ${{ matrix.os }}
+        timeout-minutes: 10
+        env:
+            ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
         strategy:
             matrix:
                 os: [ubuntu-latest, windows-latest, macos-latest]

@@ -7,7 +7,7 @@
 	"scripts": {
 		"start": "node src/server.js",
 		"dev": "node --watch src/server.js",
-		"test": "node tests/load-test.js",
+		"test": "node tests/test.js",
 		"lint": "eslint .",
 		"lint:fix": "eslint . --fix",
 		"build:exe": "pkg . --targets node18-win-x64 --output plant-care.exe"
