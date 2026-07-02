@@ -36,27 +36,27 @@ project/<br>
 ## Установка и запуск
 
 1.  Клонируйте репозиторий:<br>
-    git clone https://github.com/Shade-Angel/project.git<br>
-    cd project<br>
+    `git clone https://github.com/Shade-Angel/project.git`<br>
+    `cd project`<br>
 
 2.  Установите зависимости<br>
-    npm install<br>
+    `npm install`<br>
 
 3.  Запустите сервер<br>
-    node src/server.js
+    `node src/server.js`
 
     Или <br>
-    npm start
+    `npm start`
 
 4.  Откроестся браузер, если не открылся надо открыть браузер вручную и перейти по адресу(http://localhost:3000).
 
 5.  Также можете запускать тесты и демо вариант (нужен отделный терминал)
 
 - Тесты<br>
-  node test/test.js
+  `node test/test.js`
 
 - Демо<br>
-  node demo.js
+  `node demo.js`
 
 ## Скачать
 
