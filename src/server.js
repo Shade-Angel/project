@@ -1,28 +1,29 @@
 const express = require("express");
 const path = require("path");
-const fs = require("fs");
 const { exec } = require("child_process");
 const { PlantCareManager } = require("./core/plant-manager");
 const { loadFromFile, saveToFile } = require("./core/save");
 
+const createHandlers = require('./control_Server/hadlingplant');
+
 const app = express();
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "../public")));
+app.use(express.json({limit: '1mb'}));
+
 app.use((req, res, next) => {
 	console.log(`${req.method} ${req.url}`);
 	next();
 });
 
-const publicPath = process.pkg ? path.join(process.cwd(), "public") : path.join(__dirname, "../public");
-
-app.use(express.static(publicPath));
-
 const manager = new PlantCareManager();
-const file = path.join(__dirname, "../data.json");
+
+const publicPath = process.pkg ? path.join(process.cwd(), "public") : path.join(__dirname, "../public");
+app.use(express.static(publicPath));
 
 const dataFile = process.pkg ? path.join(process.cwd(), "data.json") : path.join(__dirname, "../data.json");
 
-loadFromFile(manager, file);
+loadFromFile(manager, dataFile);
+
+const handlers = createHandlers(manager, saveToFile, dataFile);
 
 const saveOnExit = () => {
 	saveToFile(manager, dataFile);
@@ -42,80 +43,23 @@ process.on("uncaughtException", (err) => {
 });
 
 
-app.post("/api/plants", (req, res) => {
-	try {
-		manager.addPlant(req.body);
-		saveToFile(manager, dataFile);
-		res.json({ ok: true });
-	} catch (e) {
-		res.status(400).json({ error: e.message });
-	}
-});
+app.post("/api/plants", handlers.addPlant);
 
 
-app.post("/api/relations", (req, res) => {
-	try {
-		manager.addRelation(req.body.id1, req.body.id2, req.body.type, req.body.weight);
-		res.json({ ok: true });
-	} catch (e) {
-		res.status(400).json({ error: e.message });
-	}
-});
+app.post("/api/relations", handlers.addRelation);
 
 
-app.post("/api/import", (req, res) => {
-	try {
-		const newData = req.body;
-		const tempFile = dataFile + ".temp";
-		fs.writeFileSync(tempFile, JSON.stringify(newData, null, 2));
+app.post("/api/import", handlers.importData);
 
-		fs.renameSync(tempFile, dataFile);
-		loadFromFile(manager, dataFile);
+app.delete("/api/plants/:id", handlers.removePlant);
 
-		res.json({ ok: true, message: "Данные импортированы" });
-	} catch (e) {
-		res.status(400).json({ error: e.message });
-	}
-});
+app.get("/api/schedule", handlers.getSchedule);
 
+app.get("/api/report", handlers.getReport);
 
-app.delete("/api/plants/:id", (req, res) => {
-	console.log(`DELETE /api/plants/${req.params.id} received`);
-	try{
-		const id = req.params.id;
-		manager.removePlant(id);
-		saveToFile(manager, dataFile);
-		res.json({ok: true});
-	}catch(e){
-		res.status(400).json({error: e.message});
-	}
-});
+app.get("/api/route", handlers.route);
 
-
-app.get("/api/schedule", (req, res) => {
-	const tasks = manager.getDailyTasks();
-	res.json(tasks);
-});
-
-
-app.get("/api/report", (req, res) => res.json(manager.generateReport()));
-
-
-app.get("/api/route", (req, res) => {
-	const { from, to } = req.query;
-	res.json(manager.findCareRoute(from, to));
-});
-
-
-app.get("/api/export", (req, res) => {
-	if (fs.existsSync(dataFile)) {
-		res.download(dataFile, "plant-data.json");
-	} else {
-		res.status(404).json({ error: "Файл данных не найден" });
-	}
-});
-
-
+app.get("/api/export", handlers.exportData);
 
 app.get("*", (req, res) => {
 	res.sendFile(path.join(publicPath, "index.html"));
