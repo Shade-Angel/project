@@ -45,6 +45,7 @@ process.on("uncaughtException", (err) => {
 app.post("/api/plants", (req, res) => {
 	try {
 		manager.addPlant(req.body);
+		saveToFile(manager, dataFile);
 		res.json({ ok: true });
 	} catch (e) {
 		res.status(400).json({ error: e.message });
