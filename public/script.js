@@ -65,13 +65,31 @@ async function loadSchedule() {
             ID: ${p.id}<br>
             Дата ухода: ${p.nextCareDate}<br>
             Сложность: ${p.complexity}/5 | Здоровье: ${p.healthIndex}%
-			<div class="deleteIcon" onclick="alert(1)">X</div>
+			<div class="deleteIcon" onclick="deletePlants('${p.id}')">X</div>
           </li>`;
 			})
 			.join("");
 	} catch (e) {
 		document.getElementById("schedule").innerHTML = '<li class="error">Ошибка загрузки: ' + e.message + "</li>";
 	}
+}
+
+async function deletePlants(id){
+	setTimeout(() => {}, 1000);
+	try{
+		const response = await fetch(`/api/plants/${id}`, {
+			method: 'DELETE',
+			headers: {"Content-Type": "application/json"}
+		});
+
+		if(!response.ok){
+			const err = await response.json();
+			throw new Error(err.error || 'Ошибка удаления!');
+		}
+		loadSchedule();
+	}catch(e){
+		alert(e.message);
+	}	
 }
 
 async function loadReport() {

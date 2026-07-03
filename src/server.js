@@ -8,6 +8,10 @@ const { loadFromFile, saveToFile } = require("./core/save");
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../public")));
+app.use((req, res, next) => {
+	console.log(`${req.method} ${req.url}`);
+	next();
+});
 
 const publicPath = process.pkg ? path.join(process.cwd(), "public") : path.join(__dirname, "../public");
 
@@ -26,6 +30,7 @@ const saveOnExit = () => {
 	process.exit(0);
 };
 
+
 process.on("SIGINT", saveOnExit);
 process.on("SIGTERM", saveOnExit);
 process.on("SIGQUIT", saveOnExit);
@@ -36,6 +41,7 @@ process.on("uncaughtException", (err) => {
 	process.exit(1);
 });
 
+
 app.post("/api/plants", (req, res) => {
 	try {
 		manager.addPlant(req.body);
@@ -44,6 +50,7 @@ app.post("/api/plants", (req, res) => {
 		res.status(400).json({ error: e.message });
 	}
 });
+
 
 app.post("/api/relations", (req, res) => {
 	try {
@@ -54,20 +61,6 @@ app.post("/api/relations", (req, res) => {
 	}
 });
 
-app.get("/api/schedule", (req, res) => res.json(manager.getDailyTasks()));
-app.get("/api/report", (req, res) => res.json(manager.generateReport()));
-app.get("/api/route", (req, res) => {
-	const { from, to } = req.query;
-	res.json(manager.findCareRoute(from, to));
-});
-
-app.get("/api/export", (req, res) => {
-	if (fs.existsSync(dataFile)) {
-		res.download(dataFile, "plant-data.json");
-	} else {
-		res.status(404).json({ error: "Файл данных не найден" });
-	}
-});
 
 app.post("/api/import", (req, res) => {
 	try {
@@ -84,9 +77,49 @@ app.post("/api/import", (req, res) => {
 	}
 });
 
+
+app.delete("/api/plants/:id", (req, res) => {
+	console.log(`DELETE /api/plants/${req.params.id} received`);
+	try{
+		const id = req.params.id;
+		manager.removePlant(id);
+		saveToFile(manager, dataFile);
+		res.json({ok: true});
+	}catch(e){
+		res.status(400).json({error: e.message});
+	}
+});
+
+
+app.get("/api/schedule", (req, res) => {
+	const tasks = manager.getDailyTasks();
+	res.json(tasks);
+});
+
+
+app.get("/api/report", (req, res) => res.json(manager.generateReport()));
+
+
+app.get("/api/route", (req, res) => {
+	const { from, to } = req.query;
+	res.json(manager.findCareRoute(from, to));
+});
+
+
+app.get("/api/export", (req, res) => {
+	if (fs.existsSync(dataFile)) {
+		res.download(dataFile, "plant-data.json");
+	} else {
+		res.status(404).json({ error: "Файл данных не найден" });
+	}
+});
+
+
+
 app.get("*", (req, res) => {
 	res.sendFile(path.join(publicPath, "index.html"));
 });
+
 
 if (process.argv.includes("--test")) {
 	const { runPerformanceTests } = require("../test/test");

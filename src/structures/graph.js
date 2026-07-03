@@ -10,6 +10,17 @@ class Graph {
 		if (!this.adjacency.has(v)) {this.adjacency.set(v, []);}
 	}
 
+	removeVertex(v){
+		if(!this.adjacency.has(v)){
+			return;
+		} else {
+			for(const [u, neighbors] of this.adjacency.entries()){
+				this.adjacency.set(u, neighbors.filter(edge => edge.node !== v));
+			}
+			this.adjacency.delete(v);
+		}
+	}
+
 	addEdge(u, v, weight = 1) {
 		this.addVertex(u);
 		this.addVertex(v);

@@ -56,7 +56,7 @@ export default [
 				"warn",
 				{
 					argsIgnorePattern: "^_",
-					varsIgnorePattern: "^(exportData|importData|addPlant|loadReport|api)$",
+					varsIgnorePattern: "^(exportData|importData|addPlant|loadReport|api|deletePlants)$",
 				},
 			],
 		},

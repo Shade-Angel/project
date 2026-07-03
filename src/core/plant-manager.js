@@ -16,12 +16,33 @@ class PlantCareManager {
 	}
 
 	addPlant(plant) {
-		if (this.plants.find(plant.id)) {throw new Error("Растение уже существует");}
+		if (this.plants.find(plant.id)) {
+			throw new Error("Растение уже существует");
+		}
 		this.plants.insert(plant.id, plant);
 		this.byNextCareDate.insert(plant.nextCareDate, plant.id);
 		this.byComplexity.insert(plant.complexity, plant.id);
 		this.compatGraph.addVertex(plant.id);
 		this.careSeqGraph.addVertex(plant.id);
+	}
+
+	removePlant(id) {
+		const plant = this.plants.find(id);
+		if (!plant) {
+			throw new Error("Растение не найдено!");
+		}
+
+		this.plants.delete(id);
+		this.byNextCareDate = new AVLTree();
+		this.byComplexity = new AVLTree();
+		const remaining = this.plants.values();
+		for (const p of remaining) {
+			this.byNextCareDate.insert(p.nextCareDate, p.id);
+			this.byComplexity.insert(p.complexity, p.id);
+		}
+
+		this.compatGraph.removeVertex(id);
+		this.careSeqGraph.removeVertex(id);
 	}
 
 	addRelation(id1, id2, type = "compatible", weight = 1) {
@@ -39,11 +60,18 @@ class PlantCareManager {
 		for (const [dateStr, id] of this.byNextCareDate.inOrder()) {
 			if (dateStr <= todayStr) {
 				const plant = this.plants.find(id);
-				if (plant) {candidates.push(plant);}
-			} else {break;}
+				if (plant) {
+					candidates.push(plant);
+				} else {
+					console.warn(`getDailyTasks`);
+				}
+			} else {
+				break;
+			}
 		}
-
-		if (candidates.length === 0) {return [];}
+		if (candidates.length === 0) {
+			return [];
+		}
 
 		const score = (p) => {
 			const delayDays = Math.max(0, todayStr.localeCompare(p.nextCareDate) * -1);
@@ -62,8 +90,11 @@ class PlantCareManager {
 		const conflicts = [],
 			compatibles = [];
 		for (const { node: nid, weight } of neighbors) {
-			if (weight < 0) {conflicts.push(nid);}
-			else {compatibles.push(nid);}
+			if (weight < 0) {
+				conflicts.push(nid);
+			} else {
+				compatibles.push(nid);
+			}
 		}
 		return { conflicts, compatibles };
 	}
