@@ -61,10 +61,11 @@ async function loadSchedule() {
 			.map((p, i) => {
 				const isUrgent = p.healthIndex < 50;
 				return `<li class="${isUrgent ? "urgent" : ""}">
-            <strong>${i + 1}. ${p.name || p.id}</strong><br>
+            <strong>${i + 1}. ${p.name || p.id}</strong>
             ID: ${p.id}<br>
             Дата ухода: ${p.nextCareDate}<br>
             Сложность: ${p.complexity}/5 | Здоровье: ${p.healthIndex}%
+			<div class="deleteIcon" onclick="alert(1)">X</div>
           </li>`;
 			})
 			.join("");
@@ -100,7 +101,7 @@ async function loadReport() {
 			.join("");
 	} catch (e) {
 		document.getElementById("report").innerHTML =
-            '<li class="error">Ошибка формирования отчёта: ' + e.message + "</li>";
+			'<li class="error">Ошибка формирования отчёта: ' + e.message + "</li>";
 	}
 }
 
