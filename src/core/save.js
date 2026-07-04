@@ -1,7 +1,7 @@
 "use strict";
-const fs = require("fs");
+const fs = require("fs").promises;
 
-function saveToFile(manager, filePath = "./data.json") {
+async function saveToFile(manager, filePath = "./data.json") {
 	const data = {
 		plants: manager.plants.values(),
 		relations: [],
@@ -50,21 +50,27 @@ function saveToFile(manager, filePath = "./data.json") {
 	data.relations.push(...extractCareSeqEdges());
 
 	try {
-		fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+		await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
 		console.log(`Данные сохранены в ${filePath}`);
 	} catch (err) {
 		console.error("Ошибка сохранения:", err.message);
+		throw err;
 	}
 }
 
-function loadFromFile(manager, filePath = "./data.json") {
-	if (!fs.existsSync(filePath)) {
-		console.log("Файл данных не найден. Запуск с чистого листа.");
-		return;
+async function loadFromFile(manager, filePath = "./data.json") {
+	try {
+		await fs.access(filePath); 
+	} catch (err) {
+		if (err.code === "ENOENT") {
+			console.log("Файл данных не найден. Запуск с чистого листа.");
+			return;
+		}
+		throw err;
 	}
 
 	try {
-		const raw = fs.readFileSync(filePath, "utf-8");
+		const raw = await fs.readFile(filePath, "utf-8");
 		const data = JSON.parse(raw);
 
 		if (data.plants && Array.isArray(data.plants)) {
@@ -99,22 +105,27 @@ function loadFromFile(manager, filePath = "./data.json") {
 			console.log(`Последнее сохранение: ${new Date(data.lastSaved).toLocaleString("ru-RU")}`);
 		}
 	} catch (err) {
-		console.error("Ошибка чтения файла:", err.message);
-		console.log("Файл будет создан заново при первом сохранении");
+		if(err.code === 'ENOENT'){
+			console.log("Файл данных не найден. Запуск с чистого листа.");
+		}else{
+			console.error("Ошибка чтения файла:", err.message);
+			console.log("Файл будет создан заново при первом сохранении");
+			throw err;
+		}
+		
 	}
 }
 
-function backupFile(filePath = "./data.json") {
-	if (!fs.existsSync(filePath)) {
-		return;
-	}
-
-	const backupPath = filePath.replace(".json", `.backup.${Date.now()}.json`);
+async function backupFile(filePath = "./data.json") {
 	try {
-		fs.copyFileSync(filePath, backupPath);
-		console.log(`️ Резервная копия создана: ${backupPath}`);
+		await fs.access(filePath);
+		const backupPath = filePath.replace(".json", `.backup.${Date.now()}.json`);
+		await fs.copyFile(filePath, backupPath);
+		console.log(`Резервная копия создана: ${backupPath}`);
 	} catch (err) {
-		console.error("Не удалось создать резервную копию:", err.message);
+		if (err.code !== 'ENOENT') {
+			console.error("Не удалось создать резервную копию:", err.message);
+		}
 	}
 }
 

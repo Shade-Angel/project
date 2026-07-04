@@ -9,13 +9,27 @@ const plantSchema = val.object({
 		"any.required": "Название растения должно быть введено",
 		"string.empty": "Название не может быть пустым",
 	}),
-	nextCareDate: val.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required().messages({
-		"date.base": "Нужно ввести дату",
-		"date.format": "Дата должна быть введена в правильном формате",
-		"string.empty": "Дата не может быть пустой",
+	nextCareDate: val
+		.string()
+		.pattern(/^\d{4}-\d{2}-\d{2}$/)
+		.required()
+		.messages({
+			"date.base": "Нужно ввести дату",
+			"date.format": "Дата должна быть введена в правильном формате",
+			"string.empty": "Дата не может быть пустой",
+		}),
+	complexity: val.number().integer().min(1).max(5).default(3).messages({
+		"number.min": "Сложность не может быть меньше 1",
+		"number.max": "Сложность не может быть больше 5",
+		"number.base": "Введите число",
+		"number.integer": "Сложность должна быть целым числом",
 	}),
-	complexity: val.number().integer().min(1).max(5).default(3),
-	healthIndex: val.number().integer().min(0).max(100).default(80)
+	healthIndex: val.number().integer().min(0).max(100).default(80).messages({
+		"number.min": "Индекс здоровья не может быть меньше 1",
+		"number.max": "Индекс здоровья не может быть больше 5",
+		"number.base": "Введите число",
+		"number.integer": "Индекс здоровья должна быть целым числом",
+	}),
 });
 
 const relationSchema = val.object({

@@ -13,7 +13,7 @@ module.exports = function handlers(manager, saveToFile, dataFile){
 			res.json(report);			
 		}),
 
-		addPlant: cover((req, res, next) => {
+		addPlant: cover(async(req, res, next) => {
 			const {error, value} = validatePlant(req.body);
 			if(error){
 				const err = new Error(error.details.map(d => d.message).join(' ; '));
@@ -21,11 +21,11 @@ module.exports = function handlers(manager, saveToFile, dataFile){
 				return next(err);
 			}
 			manager.addPlant(value);
-			saveToFile(manager, dataFile);
+			await saveToFile(manager, dataFile);
 			res.json({ok: true, plant: value});
 		}),
 
-		removePlant: cover((req, res, next) => {
+		removePlant: cover(async(req, res, next) => {
 			const {id} = req.params;
 			if(!id){
 				const err = new Error('ID не указан');
@@ -33,11 +33,11 @@ module.exports = function handlers(manager, saveToFile, dataFile){
 				return next(err);
 			}
 			manager.removePlant(id);
-			saveToFile(manager, dataFile);
+			await saveToFile(manager, dataFile);
 			res.json({ok: true});
 		}),
 
-		addRelation: cover((req, res, next) => {
+		addRelation: cover(async(req, res, next) => {
 			const {error, value} = validateRelation(req.body);
 			if(error){
 				const err = new Error(error.details.map(d => d.message).join(' ; '));
@@ -46,7 +46,7 @@ module.exports = function handlers(manager, saveToFile, dataFile){
 			}
 			const{id1, id2, type, weight} = value;
 			manager.addRelation(id1, id2, type, weight);
-			saveToFile(manager, dataFile);
+			await saveToFile(manager, dataFile);
 			res.json({ok: true, relation: value});
 		}),
 
@@ -61,18 +61,19 @@ module.exports = function handlers(manager, saveToFile, dataFile){
 			res.json(route);
 		}),
 
-		exportData: cover((req, res, next) => {
-			const fs = require('fs');
-			if (fs.existsSync(dataFile)) {
-				res.download(dataFile, 'data.json');
-			} else {
-				const err = new Error('Файл данных не найден');
-				err.statusCode = 404;
-				return next(err);
+		exportData: cover(async(req, res, next) => {
+			const fs = require("fs").promises;
+			try {
+				await fs.access(dataFile);
+				res.download(dataFile, "data.json");
+			} catch (err) {
+				const error = new Error(`Файл данных не найден: ${err.message}`);
+				error.statusCode = 404;
+				next(error);
 			}
 		}),
 
-		importData: cover((req, res, next) => {
+		importData: cover(async(req, res, next) => {
 			const newData = req.body;
 			if (!newData.plants || !Array.isArray(newData.plants)) {
 				const err = new Error('Неверный формат данных: ожидается поле plants');
@@ -89,13 +90,13 @@ module.exports = function handlers(manager, saveToFile, dataFile){
 					return next(err);
 				}
 			}
-			const fs = require('fs');
+			const fs = require('fs').promises;
 			const tempFile = dataFile + '.temp';
-			fs.writeFileSync(tempFile, JSON.stringify(newData, null, 2));
-			fs.renameSync(tempFile, dataFile);
+			await fs.writeFile(tempFile, JSON.stringify(newData, null, 2));
+			await fs.rename(tempFile, dataFile);
 
 			const { loadFromFile } = require('../core/save');
-			loadFromFile(manager, dataFile);
+			await loadFromFile(manager, dataFile);
 			res.json({ ok: true, message: 'Данные импортированы' });
 
 		})

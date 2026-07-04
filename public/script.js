@@ -3,6 +3,16 @@ const api = async (url, opts = {}) => {
 		headers: { "Content-Type": "application/json" },
 		...opts,
 	});
+	if (!response.ok) {
+		let errorMsg;
+		try {
+			const errData = await response.json();
+			errorMsg = errData.error || response.statusText;
+		} catch {
+			errorMsg = response.statusText;
+		}
+		throw new Error(errorMsg || `Ошибка ${response.status}`);
+	}
 	return await response.json();
 };
 
