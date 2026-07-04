@@ -1,113 +1,103 @@
+const { cover } = require('./exceptions/error_filter');
 const { validatePlant, validateRelation} = require('./validations');
 
 module.exports = function handlers(manager, saveToFile, dataFile){
 	return {
-		getSchedule(req, res){
-			try{
-				const tasks = manager.getDailyTasks();
-				res.json(tasks);
-			}catch(e){
-				res.status(500).json({error: e.message});
-			}
-		},
+		getSchedule: cover((req, res, _next) => {
+			const tasks = manager.getDailyTasks();
+			res.json(tasks);
+		}),
 
-		getReport(req, res){
-			try{
-				const report = manager.generateReport();
-				res.json(report);
-			}catch(e){
-				res.status(500).json({error: e.message});
-			}
-		},
+		getReport: cover((req, res, _next) => {
+			const report = manager.generateReport();
+			res.json(report);			
+		}),
 
-		addPlant(req, res){
-			try{
-				const {error, value} = validatePlant(req.body);
-				if(error){
-					const message = error.details.map(d => d.message).join(' ; ');
-					return res.status(400).json({error: message});
+		addPlant: cover((req, res, next) => {
+			const {error, value} = validatePlant(req.body);
+			if(error){
+				const err = new Error(error.details.map(d => d.message).join(' ; '));
+				err.statusCode = 400;
+				return next(err);
+			}
+			manager.addPlant(value);
+			saveToFile(manager, dataFile);
+			res.json({ok: true, plant: value});
+		}),
+
+		removePlant: cover((req, res, next) => {
+			const {id} = req.params;
+			if(!id){
+				const err = new Error('ID не указан');
+				err.statusCode = 400;
+				return next(err);
+			}
+			manager.removePlant(id);
+			saveToFile(manager, dataFile);
+			res.json({ok: true});
+		}),
+
+		addRelation: cover((req, res, next) => {
+			const {error, value} = validateRelation(req.body);
+			if(error){
+				const err = new Error(error.details.map(d => d.message).join(' ; '));
+				err.statusCode = 400;
+				return next(err);
+			}
+			const{id1, id2, type, weight} = value;
+			manager.addRelation(id1, id2, type, weight);
+			saveToFile(manager, dataFile);
+			res.json({ok: true, relation: value});
+		}),
+
+		route: cover((req, res, next) => {
+			const {from, to} = req.query;
+			if(!from || !to){
+				const err = new Error('Параметры to и from отсутствуют');
+				err.statusCode = 400;
+				return next(err);
+			}
+			const route = manager.findCareRoute(from, to);
+			res.json(route);
+		}),
+
+		exportData: cover((req, res, next) => {
+			const fs = require('fs');
+			if (fs.existsSync(dataFile)) {
+				res.download(dataFile, 'data.json');
+			} else {
+				const err = new Error('Файл данных не найден');
+				err.statusCode = 404;
+				return next(err);
+			}
+		}),
+
+		importData: cover((req, res, next) => {
+			const newData = req.body;
+			if (!newData.plants || !Array.isArray(newData.plants)) {
+				const err = new Error('Неверный формат данных: ожидается поле plants');
+				err.statusCode = 400;
+				return next(err);
+			}
+			for (const plant of newData.plants) {
+				const { error } = validatePlant(plant);
+				if (error) {
+					const err = new Error(
+						`Ошибка в импортируемых данных: ${error.details.map((d) => d.message).join(" ; ")}`
+					);
+					err.statusCode = 400;
+					return next(err);
 				}
-				manager.addPlant(value);
-				saveToFile(manager, dataFile);
-				res.json({ok: true, plant: value});
-			}catch(e){
-				res.status(400).json({error: e.message});
 			}
-		},
+			const fs = require('fs');
+			const tempFile = dataFile + '.temp';
+			fs.writeFileSync(tempFile, JSON.stringify(newData, null, 2));
+			fs.renameSync(tempFile, dataFile);
 
-		removePlant(req, res){
-			try{
-				const {id} = req.params;
-				if(!id){
-					return res.status(400).json({error: 'ID не указан'});
-				}
-				manager.removePlant(id);
-				saveToFile(manager, dataFile);
-				res.json({ok: true});
-			}catch(e){
-				res.status(400).json({error: e.message});
-			}
-		},
+			const { loadFromFile } = require('../core/save');
+			loadFromFile(manager, dataFile);
+			res.json({ ok: true, message: 'Данные импортированы' });
 
-		addRelation(req, res){
-			try{
-				const {error, value} = validateRelation(req.body);
-				if(error){
-					const message = error.details.map(d => d.message).join(' ; ');
-					return res.status(400).json({error: message});
-				}
-				const{id1, id2, type, weight} = value;
-				manager.addRelation(id1, id2, type, weight);
-				saveToFile(manager, dataFile);
-				res.json({ok: true, plant: value});
-			}catch(e){
-				res.status(400).json({error: e.message});
-			}
-		},
-
-		route(req, res){
-			try{
-				const {from, to} = req.query;
-				if(!from || !to){
-					return res.status(400).json({error: 'Параметры to и from отсутствуют'});
-				}
-				const route = manager.findCarreRoute(from, to);
-				res.json(route);
-			}catch(e){
-				res.status(400).json({error: e.message});
-			}
-		},
-
-		exportData(req, res) {
-			try {
-				const fs = require('fs');
-				if (fs.existsSync(dataFile)) {
-					res.download(dataFile, 'plant-data.json');
-				} else {
-					res.status(404).json({ error: 'Файл данных не найден' });
-				}
-			} catch (e) {
-				res.status(500).json({ error: e.message });
-			}
-		},
-
-		importData(req, res) {
-			try {
-				const newData = req.body;
-				if (!newData.plants || !Array.isArray(newData.plants)) {
-					return res.status(400).json({ error: 'Неверный формат данных: ожидается поле plants' });
-				}
-				const fs = require('fs');
-				const tempFile = dataFile + '.temp';
-				fs.writeFileSync(tempFile, JSON.stringify(newData, null, 2));
-				fs.renameSync(tempFile, dataFile);
-
-				const { loadFromFile } = require('../core/save');
-				loadFromFile(manager, dataFile);
-				res.json({ ok: true, message: 'Данные импортированы' });
-			} catch (e) {
-				res.status(400).json({ error: e.message });
-			}
-		}
+		})
 	};        
 };

@@ -5,6 +5,7 @@ const { PlantCareManager } = require("./core/plant-manager");
 const { loadFromFile, saveToFile } = require("./core/save");
 
 const createHandlers = require('./control_Server/hadlingplant');
+const { notFound, errorHandler } = require("./control_Server/exceptions/error_filter");
 
 const app = express();
 app.use(express.json({limit: '1mb'}));
@@ -65,6 +66,9 @@ app.get("*", (req, res) => {
 	res.sendFile(path.join(publicPath, "index.html"));
 });
 
+
+app.use(notFound);
+app.use(errorHandler);
 
 if (process.argv.includes("--test")) {
 	const { runPerformanceTests } = require("../test/test");

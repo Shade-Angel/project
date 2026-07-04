@@ -10,7 +10,7 @@ const plantSchema = val.object({
 		"string.empty": "Название не может быть пустым",
 	}),
 	nextCareDate: val.date().iso().required().messages({
-		"data.base": "Нужно ввести дату",
+		"date.base": "Нужно ввести дату",
 		"date.format": "Дата должна быть введена в правильном формате",
 		"string.empty": "Дата не может быть пустой",
 	}),
