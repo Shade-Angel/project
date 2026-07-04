@@ -9,7 +9,7 @@ const plantSchema = val.object({
 		"any.required": "Название растения должно быть введено",
 		"string.empty": "Название не может быть пустым",
 	}),
-	nextCareDate: val.date().iso().required().messages({
+	nextCareDate: val.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required().messages({
 		"date.base": "Нужно ввести дату",
 		"date.format": "Дата должна быть введена в правильном формате",
 		"string.empty": "Дата не может быть пустой",

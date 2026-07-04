@@ -6,12 +6,13 @@ const { loadFromFile, saveToFile } = require("./core/save");
 
 const createHandlers = require('./control_Server/hadlingplant');
 const { notFound, errorHandler } = require("./control_Server/exceptions/error_filter");
+const logger = require("./control_Server/exceptions/logger");
 
 const app = express();
 app.use(express.json({limit: '1mb'}));
 
 app.use((req, res, next) => {
-	console.log(`${req.method} ${req.url}`);
+	logger.info(`${req.method} ${req.url}`);
 	next();
 });
 
@@ -19,6 +20,8 @@ const manager = new PlantCareManager();
 
 const publicPath = process.pkg ? path.join(process.cwd(), "public") : path.join(__dirname, "../public");
 app.use(express.static(publicPath));
+
+logger.info('Сервер запустился');
 
 const dataFile = process.pkg ? path.join(process.cwd(), "data.json") : path.join(__dirname, "../data.json");
 
@@ -28,7 +31,7 @@ const handlers = createHandlers(manager, saveToFile, dataFile);
 
 const saveOnExit = () => {
 	saveToFile(manager, dataFile);
-	console.log("Данные сохранены");
+	logger.info("Данные сохранены");
 	process.exit(0);
 };
 
@@ -38,7 +41,7 @@ process.on("SIGTERM", saveOnExit);
 process.on("SIGQUIT", saveOnExit);
 
 process.on("uncaughtException", (err) => {
-	console.error("Ошибка:", err.message);
+	logger.error(`Ошибка: ${err.message}`, {stack: err.stack});
 	saveToFile(manager, dataFile);
 	process.exit(1);
 });
@@ -109,8 +112,8 @@ if (process.argv.includes("--test")) {
 	const PORT = 3000;
 	app.listen(PORT, () => {
 		console.log("");
-		console.log(`Web запущен: http://localhost:${PORT}`);
-		console.log(`Данные: ${dataFile}`);
+		logger.info(`Web запущен: http://localhost:${PORT}`);
+		logger.info(`Данные: ${dataFile}`);
 
 		setTimeout(() => {
 			const openCmd =

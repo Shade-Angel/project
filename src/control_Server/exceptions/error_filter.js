@@ -1,3 +1,5 @@
+const logging = require('./logger');
+
 function notFound(req, res, next){
 	const error = new Error(`Маршрут ${req.method} ${req.url} не найден!`);
 	error.statusCode = 404;
@@ -7,10 +9,7 @@ function notFound(req, res, next){
 function errorHandler(err, req, res, _next){
 	const statusCode = err.statusCode || 500;
 	const message = err.message || 'Неизвестная ошибка';
-	console.error(`Ошибка ${statusCode} -- ${message}`);
-	if(err.stack){
-		console.error(err.stack);
-	}
+	logging.error(`${statusCode} -- ${message}`, {stack: err.stack});
 
 	res.status(statusCode).json({error: message});
 }
