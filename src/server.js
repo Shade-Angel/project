@@ -16,12 +16,24 @@ app.use((req, res, next) => {
 });
 
 const manager = new PlantCareManager();
-const publicPath = process.pkg ? path.join(process.cwd(), "public") : path.join(__dirname, "../public");
+
+let isSea = false;
+
+try{
+	const sea = require("node:sea");
+	isSea = sea.isSea();
+} catch(e){
+	console.log(e);
+}
+
+const baseDir = isSea ? path.dirname(process.execPath) : path.join(__dirname, '..');
+
+const publicPath = path.join(baseDir, 'public');
 app.use(express.static(publicPath));
 
 logger.info("Сервер запускается");
 
-const dataFile = process.pkg ? path.join(process.cwd(), "data.json") : path.join(__dirname, "../data.json");
+const dataFile = path.join(baseDir, 'data.json');
 
 async function startServer() {
 	await loadFromFile(manager, dataFile);
