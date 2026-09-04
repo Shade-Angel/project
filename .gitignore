@@ -1,6 +1,7 @@
 node_modules/
 *.exe
 data.json
+dist/
 
 .DS_Store
 Thumbs.db
