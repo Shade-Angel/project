@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   lint-and-test:
     runs-on: ${{ matrix.os }}
@@ -76,6 +79,12 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag $tegName
           git push origin $tegName
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Ошибка при пуше тега в репозиторий!"
+            exit 1
+          }
+
           echo "Тег $tegName успешно создан!"
 
       - name: Setup Node.js
