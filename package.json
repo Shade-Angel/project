@@ -1,6 +1,6 @@
 {
 	"name": "plant_shuduler",
-	"version": "1.2.5",
+	"version": "1.2.6",
 	"description": "Простая программа используящая алгоритмы и структуры данных изученных на парах АЛГОСА",
 	"main": "src/server.js",
 	"bin": "src/server.js",
