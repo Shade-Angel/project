@@ -32,4 +32,8 @@ execSync(
 if (fs.existsSync('sea-config.json')) fs.unlinkSync('sea-config.json');
 if (fs.existsSync('sea-prep.blob')) fs.unlinkSync('sea-prep.blob');
 
+if (fs.existsSync('dist')) {
+	fs.rmSync('dist', { recursive: true, force: true });
+}
+
 console.log('Сборка завершена! Файл: plant-care.exe');
