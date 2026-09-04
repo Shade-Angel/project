@@ -63,6 +63,6 @@ export default [
 	},
 
 	{
-		ignores: ["node_modules/**", "plant-care.exe", "data.json", "*.backup.*", "images/**", "*.log", "scripts/**/*.js"],
+		ignores: ["node_modules/**", "plant-care.exe", "data.json", "*.backup.*", "images/**", "*.log", "scripts/**/*.js", "dist/bundle.js"],
 	},
 ];
