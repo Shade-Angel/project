@@ -1,112 +1,121 @@
 name: test and release
 
 on:
-    push:
-        branches: [main, master, develop]
-    pull_request:
-        branches: [main, master]
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
 
 jobs:
-    lint-and-test:
-        runs-on: ${{ matrix.os }}
-        timeout-minutes: 10
+  lint-and-test:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [18, 22]
+    steps:
+      - name: Проверка кода
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Установка зависимостей
+        run: npm ci
+
+      - name: Запуск ESLint
+        run: npm run lint
+
+      - name: Запуск тестов
+        run: npm test
+
+  check-and-release:
+    name: Проверка версии и релиз
+    runs-on: windows-latest
+    needs: lint-and-test
+    if: github.actor != 'github-actions[bot]' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Проверка репозитория
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Получение версии из файла package.json
+        id: get_version
+        shell: pwsh
+        run: |
+          $pkg = Get-Content package.json | ConvertFrom-Json
+          $version = $pkg.version
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "Текущая версия в package.json = $version"
+
+      - name: Проверка существования тега
+        id: check_teg
+        shell: pwsh
+        run: |
+          $tegName = "v${{ steps.get_version.outputs.version }}"
+          $tegExists = git tag -l $tegName
+          if ($tegExists) {
+            echo "Тег $tegName уже есть, пропускаем создание релиза"
+            echo "exists=true" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "exists=false" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Создание и пуш тега
+        if: steps.check_teg.outputs.exists == 'false'
+        shell: pwsh
+        run: |
+          $tegName = "v${{ steps.get_version.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag $tegName
+          git push origin $tegName
+          echo "Тег $tegName успешно создан!"
+
+      - name: Setup Node.js
+        if: steps.check_teg.outputs.exists == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Установка зависимостей
+        if: steps.check_teg.outputs.exists == 'false'
+        run: npm ci
+
+      - name: Линтинг и тесты
+        if: steps.check_teg.outputs.exists == 'false'
+        run: |
+          npm run lint
+          npm run test
+
+      - name: Сборка .exe файла
+        if: steps.check_teg.outputs.exists == 'false'
+        run: npm run build:exe
+
+      - name: Упаковка релиза
+        id: package_release
+        if: steps.check_teg.outputs.exists == 'false'
+        shell: pwsh
+        run: |
+          $version = "${{ steps.get_version.outputs.version }}"
+          $zipName = "plant-care-v$version.zip"
+          Compress-Archive -Path plant-care.exe, public, data.json -DestinationPath $zipName
+          echo "zip_name=$zipName" >> $env:GITHUB_OUTPUT
+
+      - name: Создание GitHub Release
+        if: steps.check_teg.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release v${{ steps.get_version.outputs.version }}
+          tag_name: v${{ steps.get_version.outputs.version }}
+          files: ${{ steps.package_release.outputs.zip_name }}
+          generate_release_notes: true
         env:
-            ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-        strategy:
-            matrix:
-                os: [ubuntu-latest, windows-latest, macos-latest]
-                node-version: [18, 22]
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
-
-            - name: Setup Node.js
-              uses: actions/setup-node@v4
-              with:
-                  node-version: ${{ matrix.node-version }}
-                  cache: "npm"
-
-            - name: Install dependencies
-              run: npm ci
-
-            - name: Run ESLint
-              run: npm run lint
-
-            - name: Run tests
-              run: npm test
-
-    check-and-release:
-      name: Проверка версии и релиз
-      runs-on: windows-latest
-      needs: lint-and-test
-      if: github.actor != 'github-actions[bot]'
-
-      steps:
-        - name: Проверка репозитория
-          uses: actions/checkout@v4
-          with:
-            fetch-depth: 0
-            token: ${{ secrets.GITHUB_TOKEN }}
-
-        - name: Получение версии из файла package.json
-          id: get_version
-          shell: pwsh
-          run: |
-            $pkg = Get-Content package.json | ConvertFrom-json
-            $version = $pkg.version
-            echo "version=$version" >> $env:GITHUB_OUTPUT
-            echo "Текущая версия в package.json  =  $version"
-
-        - name: Проверка существования тега
-          id: check_teg
-          run: |
-            $tegName = "v${{ steps.get_version.outputs.version }}"
-            $tegExists = git tag -l $tegName
-            if ($tegExists) {
-              echo "Тег $tegName уже есть, пропускаем создание релиза"
-              echo "exists=true" >> $env:GITHUB_OUTPUT
-            } else {
-              echo "exists=false" >> $env:GITHUB_OUTPUT
-            }
-
-        - name: Создание и пуш тега
-          if: steps.check_teg.outputs.exists == 'false'
-          run: |
-            $tegName = "v${{ steps.get_version.outputs.version }}"
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git tag $tegName
-            git push origin $tegName
-            echo "Тег $tegName успешно создан!"
-
-        - name: Setup Node.js
-          if: steps.check_teg.outputs.exists == 'false'
-          uses: actions/setup-node@v4
-          with:
-            node-version: '22'
-            cache: 'npm'
-
-        - name: Установка зависимостей
-          if: steps.check_teg.outputs.exists == 'false'
-          run: npm ci
-
-        - name: Линтинг и тесты
-          if: steps.check_teg.outputs.exists == 'false'
-          run: |
-            npm run lint
-            npm run test
-
-        - name: Сборка .exe файла
-          if: steps.check_teg.outputs.exists == 'false'
-          run: npm run build:exe
-
-        - name: Создание GitHub Release
-          if: steps.check_teg.outputs.exists == 'false'
-          uses: softprops/action-gh-release@v2
-          with:
-            name: Release v${{ steps.get_version.outputs.version }}
-            tag_name: v${{ steps.get_version.outputs.version }}
-            files: plant-care.exe
-            generate_release_notes: true
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
