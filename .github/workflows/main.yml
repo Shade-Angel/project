@@ -115,7 +115,11 @@ jobs:
         run: |
           $version = "${{ steps.get_version.outputs.version }}"
           $zipName = "plant-care-v$version.zip"
-          Compress-Archive -Path plant-care.exe, public, data.json -DestinationPath $zipName
+          $paths = @("plant-care.exe", "public")
+          if (Test-Path "data.json") {
+            $paths += "data.json"
+          }
+          Compress-Archive -Path $paths -DestinationPath $zipName
           echo "zip_name=$zipName" >> $env:GITHUB_OUTPUT
 
       - name: Создание GitHub Release
